@@ -1,5 +1,46 @@
 const pool = require('../config/database');
 
+const obtenerCuatrimestres = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id AS cuatrimestre_id,
+                c.numero AS cuatrimestre_numero,
+                m.id AS materia_id,
+                m.nombre AS materia_nombre,
+                m.profesor_id
+            FROM cuatrimestres c
+            LEFT JOIN materias m ON c.id = m.cuatrimestre_id
+            ORDER BY c.numero ASC, m.nombre ASC;
+        `;
+        const [rows] = await pool.query(query);
+
+        const cuatrimestresMap = {};
+
+        rows.forEach(row => {
+            if (!cuatrimestresMap[row.cuatrimestre_id]) {
+                cuatrimestresMap[row.cuatrimestre_id] = {
+                    id: row.cuatrimestre_id,
+                    numero: row.cuatrimestre_numero,
+                    materias: []
+                };
+            }
+
+            if (row.materia_id) {
+                cuatrimestresMap[row.cuatrimestre_id].materias.push({
+                    id: row.materia_id,
+                    nombre: row.materia_nombre,
+                    profesor_id: row.profesor_id
+                });
+            }
+        });
+
+        res.json(Object.values(cuatrimestresMap));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 const obtenerExamenes = async (req, res) => {
     const { materia_id } = req.query;
     try {
@@ -53,4 +94,10 @@ const eliminarExamen = async (req, res) => {
     }
 };
 
-module.exports = { obtenerExamenes, crearExamen, actualizarExamen, eliminarExamen };
+module.exports = { 
+    obtenerCuatrimestres, 
+    obtenerExamenes, 
+    crearExamen, 
+    actualizarExamen, 
+    eliminarExamen 
+};
