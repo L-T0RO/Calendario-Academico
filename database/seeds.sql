@@ -8,8 +8,8 @@ INSERT INTO roles (id, nombre) VALUES
 -- 2. Insertar Usuario Director inicial
 -- Contraseña en texto plano: admin123 (hasheada con bcryptjs)
 INSERT INTO usuarios (id, nombre, email, password, rol_id) VALUES 
-(1, 'Director Académico', 'director@utn.edu.ar', '$2a$10$vQ3b2rT9K1d3z3E.L8uUdeA1R7/3w4JvJ7A3x.G4K3H2/L5F6n9qS', 1),
-(2, 'Carlos Pérez', 'carlos.perez@utn.edu.ar', '$2a$10$vQ3b2rT9K1d3z3E.L8uUdeA1R7/3w4JvJ7A3x.G4K3H2/L5F6n9qS', 2);
+(1, 'Director Académico', 'director@utn.edu.ar', '$2b$10$t/Z5csGz5R8B01gdSOIhF.viRXWHmaDZ5r2w/r2FPSgsTrXI.aZpa', 1),
+(2, 'Carlos Pérez', 'carlos.perez@utn.edu.ar', '$2b$10$t/Z5csGz5R8B01gdSOIhF.viRXWHmaDZ5r2w/r2FPSgsTrXI.aZpa', 2);
 
 -- 3. Insertar Cuatrimestres
 INSERT INTO cuatrimestres (id, numero) VALUES 
