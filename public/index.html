@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Académico</title>
+    <!-- Ruta modificada para conectar con /public/css/styles.css -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+    <!-- ==============================
+         HEADER
+    =============================== -->
+    <header class="header">
+        <div class="header-content">
+            <div class="brand">
+                <span class="university">UNIVERSIDAD</span>
+                <h1>Calendario Académico</h1>
+                <p>Licenciatura en Sistemas</p>
+            </div>
+
+            <div class="auth-buttons">
+                <!-- Botón para Ingresar (se oculta al loguearse) -->
+                <button id="loginBtn" class="teacher-button login-btn" onclick="openLoginModal()">
+                    Ingresar
+                </button>
+                <!-- Botón para agregar examen (se muestra al loguearse) -->
+                <button id="addExamBtn" class="teacher-button hidden" onclick="openExamModal()">
+                    <span>+</span> Agregar examen
+                </button>
+                <!-- Botón para salir (se muestra al loguearse) -->
+                <button id="logoutBtn" class="teacher-button logout hidden" onclick="logout()">
+                    Salir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==============================
+         CONTENIDO
+    =============================== -->
+    <main class="container">
+
+        <!-- ==============================
+             CUATRIMESTRES
+        =============================== -->
+        <section class="section">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">PLAN DE ESTUDIOS</span>
+                    <h2>Cuatrimestres</h2>
+                </div>
+            </div>
+
+            <div class="semester-grid">
+                <button class="semester active" onclick="selectSemester(1)">
+                    <span class="semester-number">01</span>
+                    <strong>1° Cuatrimestre</strong>
+                </button>
+                <button class="semester" onclick="selectSemester(2)">
+                    <span class="semester-number">02</span>
+                    <strong>2° Cuatrimestre</strong>
+                </button>
+                <button class="semester" onclick="selectSemester(3)">
+                    <span class="semester-number">03</span>
+                    <strong>3° Cuatrimestre</strong>
+                </button>
+                <button class="semester" onclick="selectSemester(4)">
+                    <span class="semester-number">04</span>
+                    <strong>4° Cuatrimestre</strong>
+                </button>
+            </div>
+        </section>
+
+        <!-- ==============================
+             MATERIAS
+        =============================== -->
+        <section class="section">
+            <div class="section-heading subjects-heading">
+                <div>
+                    <span class="eyebrow">MATERIAS</span>
+                    <h2 id="semesterTitle">1° Cuatrimestre</h2>
+                </div>
+                <div class="filter-container">
+                    <label for="subjectFilter">Mostrar exámenes de:</label>
+                    <select id="subjectFilter" onchange="filterExams()">
+                        <option value="all">Todas las materias</option>
+                    </select>
+                </div>
+            </div>
+            <div id="subjects" class="subjects-grid"></div>
+        </section>
+
+        <!-- ==============================
+             CALENDARIO
+        =============================== -->
+        <section class="calendar-section">
+            <div class="calendar-title">
+                <div>
+                    <span class="eyebrow">EVALUACIONES</span>
+                    <h2>Calendario de exámenes</h2>
+                    <p>Seleccioná una materia para ocultar las fechas de las demás.</p>
+                </div>
+            </div>
+
+            <!-- NAVEGACIÓN DEL MES -->
+            <div class="calendar-navigation">
+                <button class="month-button" onclick="changeMonth(-1)">←</button>
+                <h3 id="monthTitle">Agosto 2026</h3>
+                <button class="month-button" onclick="changeMonth(1)">→</button>
+            </div>
+
+            <!-- DÍAS DE LA SEMANA -->
+            <div class="weekdays">
+                <div>Lun</div>
+                <div>Mar</div>
+                <div>Mié</div>
+                <div>Jue</div>
+                <div>Vie</div>
+                <div>Sáb</div>
+                <div>Dom</div>
+            </div>
+
+            <!-- CALENDARIO -->
+            <div id="calendar" class="calendar"></div>
+
+            <!-- REFERENCIA DE COLORES -->
+            <div class="legend">
+                <h3>Materias</h3>
+                <div id="legendItems" class="legend-items"></div>
+            </div>
+
+            <!-- LISTA DE EXÁMENES -->
+            <div class="exam-list-section">
+                <div class="list-header">
+                    <div>
+                        <h3>Exámenes programados</h3>
+                        <p>Fechas cargadas para este cuatrimestre.</p>
+                    </div>
+                </div>
+                <div id="examList"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==============================
+         MODAL LOGIN DOCENTE/DIRECTOR
+    =============================== -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <button class="close-modal" onclick="closeLoginModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">SISTEMA</span>
+                <h2>Ingreso</h2>
+                <p>Ingresá tus credenciales para administrar exámenes.</p>
+            </div>
+            <form id="loginForm" onsubmit="login(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required placeholder="ejemplo@utn.edu.ar">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Contraseña</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="submit-button">Iniciar Sesión</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==============================
+         MODAL CREAR EXAMEN
+    =============================== -->
+    <div id="examModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeExamModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">PANEL DOCENTE</span>
+                <h2>Agregar examen</h2>
+                <p>Completá los datos de la evaluación.</p>
+            </div>
+            <form id="examForm" onsubmit="addExam(event)">
+                <!-- MATERIA -->
+                <div class="form-group">
+                    <label for="examSubject">Materia *</label>
+                    <select id="examSubject" required></select>
+                </div>
+                <!-- FECHA Y HORA -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="examDate">Fecha *</label>
+                        <input type="date" id="examDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="examTime">Hora *</label>
+                        <input type="time" id="examTime" required>
+                    </div>
+                </div>
+                <!-- TIPO -->
+                <div class="form-group">
+                    <label for="examType">Tipo de evaluación *</label>
+                    <select id="examType" required>
+                        <option value="Parcial">Parcial</option>
+                        <option value="Final">Final</option>
+                        <option value="Recuperatorio">Recuperatorio</option>
+                        <option value="Trabajo práctico">Trabajo práctico</option>
+                    </select>
+                </div>
+                <!-- UNIDADES -->
+                <div class="form-group">
+                    <label for="examUnits">Unidades que entran <span class="optional">Opcional</span></label>
+                    <input type="text" id="examUnits" placeholder="Ej: Unidades 1, 2 y 3">
+                </div>
+                <!-- DESCRIPCIÓN -->
+                <div class="form-group">
+                    <label for="examDescription">Información adicional <span class="optional">Opcional</span></label>
+                    <textarea id="examDescription" placeholder="Ej: Examen presencial en aula 204"></textarea>
+                </div>
+                <button type="submit" class="submit-button">Guardar examen</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ruta modificada para conectar con /public/js/script.js -->
+    <script src="js/script.js"></script>
+
+</body>
+</html>
