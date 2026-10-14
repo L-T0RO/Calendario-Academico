@@ -207,8 +207,8 @@ function loadSemester() {
         card.innerHTML = `
             <div class="subject-color" style="background:${subject.color}"></div>
             <div class="subject-number" style="color:${subject.color}">${index + 1}</div>
-            <h3>${subject.name}</h3>
-            <p>${semester.name}</p>
+            <h3>${subject.nombre}</h3>
+            <p>${semester.nombre}</p>
         `;
         subjectsContainer.appendChild(card);
     });
@@ -228,7 +228,7 @@ function updateFilter() {
         semesters[currentSemester].subjects.forEach(subject => {
             const option = document.createElement("option");
             option.value = subject.name;
-            option.textContent = subject.name;
+            option.textContent = subject.nombre;
             filter.appendChild(option);
         });
     }
@@ -433,26 +433,70 @@ function renderExamList() {
 }
 
 /* =========================================
-   MATERIAS PARA EL PROFESOR (MODAL)
+   MATERIAS PARA EL PROFESOR / DIRECTOR (MODAL)
 ========================================= */
-function populateTeacherSubjects() {
+async function populateTeacherSubjects() {
     const select = document.getElementById("examSubject");
     select.innerHTML = "";
 
-    Object.entries(semesters).forEach(([semesterNumber, semester]) => {
-        const group = document.createElement("optgroup");
-        group.label = semester.name;
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
 
-        semester.subjects.forEach(subject => {
-            const option = document.createElement("option");
-            // Se envía el ID de MySQL directamente como valor[cite: 9]
-            option.value = subject.id;
-            option.textContent = subject.name;
-            group.appendChild(option);
+        const response = await fetch('/api/profesor/materias', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ` + token,
+                'Content-Type': 'application/json'
+            }
         });
 
-        select.appendChild(group);
-    });
+        if (!response.ok) throw new Error('No se pudieron cargar las materias.');
+
+        const materias = await response.json();
+
+        if (materias.length === 0) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "No tienes materias asignadas";
+            select.appendChild(option);
+            return;
+        }
+
+        // Si son muchas materias (es el director viendo todo el plan), agrupamos por cuatrimestre
+        if (materias.length > 3) {
+            Object.entries(semesters).forEach(([semesterNumber, semester]) => {
+                const group = document.createElement("optgroup");
+                group.label = semester.name;
+
+                const materiasDelCuatrimestre = semester.subjects.filter(s => 
+                    materias.some(m => m.id === s.id)
+                );
+
+                materiasDelCuatrimestre.forEach(subject => {
+                    const option = document.createElement("option");
+                    option.value = subject.id;
+                    option.textContent = subject.name;
+                    group.appendChild(option);
+                });
+
+                if (materiasDelCuatrimestre.length > 0) {
+                    select.appendChild(group);
+                }
+            });
+        } else {
+            // Si es un profesor común (tiene pocas materias asignadas), mostramos lista directa
+            materias.forEach(subject => {
+                const option = document.createElement("option");
+                option.value = subject.id;
+                option.textContent = subject.nombre || subject.name;
+                select.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error al cargar las materias:", error);
+    }
 }
 
 /* =========================================

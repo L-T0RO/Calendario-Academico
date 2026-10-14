@@ -14,21 +14,26 @@ router.post('/auth/login', authController.login);
 router.get('/cuatrimestres', examController.obtenerCuatrimestres);
 router.get('/examenes', examController.obtenerExamenes);
 
-// 4.3. Endpoints del Profesor (Requiere Rol 'profesor' [2] o 'director' [1])
-router.post('/examenes', verifyToken, checkRole(1, 2), examController.crearExamen);
-router.put('/examenes/:id', verifyToken, checkRole(1, 2), examController.actualizarExamen);
-router.delete('/examenes/:id', verifyToken, checkRole(1, 2), examController.eliminarExamen);
+// 4.3. Endpoints del Profesor (Requiere Rol 'profesor' o 'director')
+router.post('/examenes', verifyToken, checkRole('profesor', 'director'), examController.crearExamen);
+router.put('/examenes/:id', verifyToken, checkRole('profesor', 'director'), examController.actualizarExamen);
+router.delete('/examenes/:id', verifyToken, checkRole('profesor', 'director'), examController.eliminarExamen);
+router.get('/profesor/materias', verifyToken, checkRole('profesor', 'director'), examController.obtenerMateriasProfesor);
 
-// 4.4. Endpoints del Director (Requiere Rol 'director' [1])
-router.get('/profesores', verifyToken, checkRole(1), adminController.obtenerProfesores);
-router.post('/profesores', verifyToken, checkRole(1), adminController.crearProfesor);
-router.put('/profesores/:id', verifyToken, checkRole(1), adminController.actualizarProfesor);
-router.delete('/profesores/:id', verifyToken, checkRole(1), adminController.eliminarProfesor);
+// 4.4. Endpoints del Director (Requiere Rol 'director')
+router.get('/profesores', verifyToken, checkRole('director'), adminController.obtenerProfesores);
+router.post('/profesores', verifyToken, checkRole('director'), adminController.crearProfesor);
+router.put('/profesores/:id', verifyToken, checkRole('director'), adminController.actualizarProfesor);
+router.delete('/profesores/:id', verifyToken, checkRole('director'), adminController.eliminarProfesor);
 
-// Asignar materia corregido a PUT según la especificación
-router.put('/materias/:id/asignar', verifyToken, checkRole(1), adminController.asignarMateria);
+// Ruta agregada para actualizar los roles de un profesor
+router.put('/profesores/:id/roles', verifyToken, checkRole('director'), adminController.actualizarRolesProfesor);
+
+// Asignar materia a un profesor
+router.put('/materias/:id/asignar', verifyToken, checkRole('director'), adminController.asignarMateria);
+
 
 // Resetear/cambiar contraseña de un profesor
-router.put('/profesores/:id/password', verifyToken, checkRole(1), adminController.cambiarPasswordProfesor);
+router.put('/profesores/:id/password', verifyToken, checkRole('director'), adminController.cambiarPasswordProfesor);
 
 module.exports = router;
