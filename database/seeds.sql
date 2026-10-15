@@ -1,29 +1,58 @@
-USE calendario_carrera;
+-- ==========================================
+-- 1. DATOS SEMILLA: ROLES Y CUATRIMESTRES
+-- ==========================================
 
--- 1. Insertar Roles
 INSERT INTO roles (id, nombre) VALUES 
-(1, 'Director'),
-(2, 'Profesor');
+(1, 'director'), 
+(2, 'profesor');
 
--- 2. Insertar Usuario Director inicial
--- Contraseña en texto plano: admin123 (hasheada con bcryptjs)
-INSERT INTO usuarios (id, nombre, email, password, rol_id) VALUES 
-(1, 'Director Académico', 'director@utn.edu.ar', '$2b$10$t/Z5csGz5R8B01gdSOIhF.viRXWHmaDZ5r2w/r2FPSgsTrXI.aZpa', 1),
-(2, 'Carlos Pérez', 'carlos.perez@utn.edu.ar', '$2b$10$t/Z5csGz5R8B01gdSOIhF.viRXWHmaDZ5r2w/r2FPSgsTrXI.aZpa', 2);
-
--- 3. Insertar Cuatrimestres
 INSERT INTO cuatrimestres (id, numero) VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
+(1, 1), 
+(2, 2), 
+(3, 3), 
 (4, 4);
 
--- 4. Insertar Materias iniciales (asignando el profesor_id 2 a la primera materia)
-INSERT INTO materias (id, nombre, cuatrimestre_id, profesor_id) VALUES 
-(1, 'Programación I', 1, 2),
-(2, 'Base de Datos I', 1, NULL),
-(3, 'Laboratorio de Computación I', 1, NULL);
+-- ==========================================
+-- 2. USUARIO INICIAL (Director Académico / Profesor)
+-- ==========================================
+-- Contraseña por defecto (hasheada con bcrypt): 'password123'
+INSERT INTO usuarios (id, nombre, email, password) VALUES 
+(1, 'Director Académico', 'director@utn.edu.ar', '$2b$10$t/Z5csGzR8B01gdSOIHf.irXWHmaD...');
 
--- 5. Insertar Exámenes iniciales de prueba
-INSERT INTO examenes (id, materia_id, fecha, titulo, unidades_evaluadas) VALUES 
-(1, 1, '2026-10-15', 'Parcial 1', 'Unidades 1, 2 y 3');
+-- Asignación de roles múltiples mediante la tabla pivote (Usuario 1 es Director y Profesor)
+INSERT INTO usuario_rol (usuario_id, rol_id) VALUES 
+(1, 1), 
+(1, 2);
+
+-- ==========================================
+-- 3. MATERIAS (17 Asignaturas Totales)
+-- ==========================================
+
+-- Cuatrimestre 1 (4 materias)
+INSERT INTO materias (id, nombre, cuatrimestre_id, profesor_id) VALUES 
+(1, 'Matemática I', 1, NULL),
+(2, 'Programación I', 1, NULL),
+(3, 'Sistema de Computación', 1, NULL),
+(4, 'Inglés I', 1, NULL);
+
+-- Cuatrimestre 2 (4 materias)
+INSERT INTO materias (id, nombre, cuatrimestre_id, profesor_id) VALUES 
+(5, 'Matemática II', 2, NULL),
+(6, 'Programación II', 2, NULL),
+(7, 'Arquitectura y Sistemas Operativos', 2, NULL),
+(8, 'Inglés II', 2, NULL);
+
+-- Cuatrimestre 3 (4 materias)
+INSERT INTO materias (id, nombre, cuatrimestre_id, profesor_id) VALUES 
+(9, 'Estadística', 3, NULL),
+(10, 'Programación III', 3, NULL),
+(11, 'Base de Datos', 3, NULL),
+(12, 'Metodología de la Investigación', 3, NULL);
+
+-- Cuatrimestre 4 (5 materias)
+INSERT INTO materias (id, nombre, cuatrimestre_id, profesor_id) VALUES 
+(13, 'Legislación', 4, NULL),
+(14, 'Laboratorio de Programación', 4, NULL),
+(15, 'Ingeniería de Software', 4, NULL),
+(16, 'Redes y Comunicaciones', 4, NULL),
+(17, 'Proyecto Final', 4, NULL);

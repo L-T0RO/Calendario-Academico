@@ -5,15 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario Académico</title>
-    <!-- Ruta modificada para conectar con /public/css/styles.css -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
 
-    <!-- ==============================
-         HEADER
-    =============================== -->
     <header class="header">
         <div class="header-content">
             <div class="brand">
@@ -23,15 +19,19 @@
             </div>
 
             <div class="auth-buttons">
-                <!-- Botón para Ingresar (se oculta al loguearse) -->
+
+                <button id="toggleRoleBtn" class="teacher-button hidden" onclick="toggleDirectorMode()">
+                    Cambiar a Modo Profesor
+                </button>
+   
                 <button id="loginBtn" class="teacher-button login-btn" onclick="openLoginModal()">
                     Ingresar
                 </button>
-                <!-- Botón para agregar examen (se muestra al loguearse) -->
+
                 <button id="addExamBtn" class="teacher-button hidden" onclick="openExamModal()">
                     <span>+</span> Agregar examen
                 </button>
-                <!-- Botón para salir (se muestra al loguearse) -->
+
                 <button id="logoutBtn" class="teacher-button logout hidden" onclick="logout()">
                     Salir
                 </button>
@@ -39,14 +39,8 @@
         </div>
     </header>
 
-    <!-- ==============================
-         CONTENIDO
-    =============================== -->
     <main class="container">
 
-        <!-- ==============================
-             CUATRIMESTRES
-        =============================== -->
         <section class="section">
             <div class="section-heading">
                 <div>
@@ -75,9 +69,6 @@
             </div>
         </section>
 
-        <!-- ==============================
-             MATERIAS
-        =============================== -->
         <section class="section">
             <div class="section-heading subjects-heading">
                 <div>
@@ -94,9 +85,6 @@
             <div id="subjects" class="subjects-grid"></div>
         </section>
 
-        <!-- ==============================
-             CALENDARIO
-        =============================== -->
         <section class="calendar-section">
             <div class="calendar-title">
                 <div>
@@ -106,7 +94,6 @@
                 </div>
             </div>
 
-            <!-- NAVEGACIÓN DEL MES -->
             <div class="calendar-navigation">
                 <button class="month-button" onclick="changeMonth(-1)">←</button>
                 <h3 id="monthTitle">Agosto 2026</h3>
@@ -124,16 +111,13 @@
                 <div>Dom</div>
             </div>
 
-            <!-- CALENDARIO -->
             <div id="calendar" class="calendar"></div>
 
-            <!-- REFERENCIA DE COLORES -->
             <div class="legend">
                 <h3>Materias</h3>
                 <div id="legendItems" class="legend-items"></div>
             </div>
 
-            <!-- LISTA DE EXÁMENES -->
             <div class="exam-list-section">
                 <div class="list-header">
                     <div>
@@ -146,9 +130,6 @@
         </section>
     </main>
 
-    <!-- ==============================
-         MODAL LOGIN DOCENTE/DIRECTOR
-    =============================== -->
     <div id="loginModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <button class="close-modal" onclick="closeLoginModal()">×</button>
@@ -171,9 +152,6 @@
         </div>
     </div>
 
-    <!-- ==============================
-         MODAL CREAR EXAMEN
-    =============================== -->
     <div id="examModal" class="modal">
         <div class="modal-content">
             <button class="close-modal" onclick="closeExamModal()">×</button>
@@ -183,12 +161,12 @@
                 <p>Completá los datos de la evaluación.</p>
             </div>
             <form id="examForm" onsubmit="addExam(event)">
-                <!-- MATERIA -->
+
                 <div class="form-group">
                     <label for="examSubject">Materia *</label>
                     <select id="examSubject" required></select>
                 </div>
-                <!-- FECHA Y HORA -->
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="examDate">Fecha *</label>
@@ -199,7 +177,7 @@
                         <input type="time" id="examTime" required>
                     </div>
                 </div>
-                <!-- TIPO -->
+
                 <div class="form-group">
                     <label for="examType">Tipo de evaluación *</label>
                     <select id="examType" required>
@@ -209,12 +187,12 @@
                         <option value="Trabajo práctico">Trabajo práctico</option>
                     </select>
                 </div>
-                <!-- UNIDADES -->
+
                 <div class="form-group">
                     <label for="examUnits">Unidades que entran <span class="optional">Opcional</span></label>
                     <input type="text" id="examUnits" placeholder="Ej: Unidades 1, 2 y 3">
                 </div>
-                <!-- DESCRIPCIÓN -->
+
                 <div class="form-group">
                     <label for="examDescription">Información adicional <span class="optional">Opcional</span></label>
                     <textarea id="examDescription" placeholder="Ej: Examen presencial en aula 204"></textarea>
@@ -224,7 +202,6 @@
         </div>
     </div>
 
-    <!-- Ruta modificada para conectar con /public/js/script.js -->
     <script src="js/script.js"></script>
 
 </body>

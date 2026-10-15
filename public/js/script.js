@@ -1,6 +1,4 @@
-/* =========================================
-   VARIABLES GLOBALES Y ESTADO
-========================================= */
+
 let semesters = {};
 let exams = [];
 
@@ -8,7 +6,8 @@ let currentSemester = 1;
 let selectedSubject = "all";
 let currentDate = new Date();
 
-// Paleta de colores para asignar dinámicamente a las materias
+let activeMode = localStorage.getItem('activeMode') || 'director';
+
 const colorsPalette = [
     "#4F46E5", "#0891B2", "#16A34A", "#EA580C", 
     "#7C3AED", "#0284C7", "#059669", "#DC2626", 
@@ -16,47 +15,96 @@ const colorsPalette = [
     "#DB2777", "#CA8A04", "#2c02fb"
 ];
 
-/* =========================================
-   INICIO
-========================================= */
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Verificar si el usuario está logueado
     checkAuthStatus();
-    
-    // 2. Cargar datos de la API de Express y DB
     await loadDataDesdeAPI();
 });
 
-/* =========================================
-   AUTENTICACIÓN Y LOGIN
-========================================= */
 function checkAuthStatus() {
     const token = localStorage.getItem('token');
+    
+    let roles = [];
+    const rolesGuardados = localStorage.getItem('roles');
+    if (rolesGuardados) {
+        try { roles = JSON.parse(rolesGuardados); } catch(e) {}
+    } else if (token) {
+        const payload = parseJwt(token);
+        if (payload && payload.roles) roles = payload.roles;
+    }
     
     const loginBtn = document.getElementById('loginBtn');
     const addExamBtn = document.getElementById('addExamBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const toggleRoleBtn = document.getElementById('toggleRoleBtn');
     
+    const esDirector = Array.isArray(roles) && roles.includes('director');
+
     if (token) {
-        loginBtn.classList.add('hidden');
-        addExamBtn.classList.remove('hidden');
-        logoutBtn.classList.remove('hidden');
+        if (loginBtn) loginBtn.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+
+        if (esDirector) {
+            // Mostrar botón para alternar de rol
+            if (toggleRoleBtn) {
+                toggleRoleBtn.classList.remove('hidden');
+                toggleRoleBtn.textContent = (activeMode === 'profesor')
+                    ? "Cambiar a Modo Director"
+                    : "Cambiar a Modo Profesor";
+            }
+
+            if (activeMode === 'profesor') {
+                if (addExamBtn) addExamBtn.classList.remove('hidden');
+            } else {
+                if (addExamBtn) addExamBtn.classList.add('hidden');
+            }
+        } else {
+            if (toggleRoleBtn) toggleRoleBtn.classList.add('hidden');
+            if (addExamBtn) addExamBtn.classList.remove('hidden');
+        }
     } else {
-        loginBtn.classList.remove('hidden');
-        addExamBtn.classList.add('hidden');
-        logoutBtn.classList.add('hidden');
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (addExamBtn) addExamBtn.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (toggleRoleBtn) toggleRoleBtn.classList.add('hidden');
     }
     
-    // Recargar la lista de exámenes para mostrar/ocultar el botón "Eliminar (x)"
     renderExamList();
 }
 
+async function toggleDirectorMode() {
+    activeMode = (activeMode === 'director') ? 'profesor' : 'director';
+    localStorage.setItem('activeMode', activeMode);
+    checkAuthStatus();
+    await populateTeacherSubjects();
+}
+
 function openLoginModal() {
-    document.getElementById("loginModal").classList.add("show");
+    const modal = document.getElementById("loginModal");
+    if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "block";
+    }
 }
 
 function closeLoginModal() {
-    document.getElementById("loginModal").classList.remove("show");
+    const modal = document.getElementById("loginModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
 }
 
 async function login(event) {
@@ -74,9 +122,26 @@ async function login(event) {
         if (res.ok) {
             const data = await res.json();
             localStorage.setItem('token', data.token);
+            
+            let roles = [];
+            if (data.usuario && data.usuario.roles) {
+                roles = data.usuario.roles;
+            } else if (data.roles) {
+                roles = data.roles;
+            } else {
+                const payload = parseJwt(data.token);
+                if (payload && payload.roles) roles = payload.roles;
+            }
+            localStorage.setItem('roles', JSON.stringify(roles));
+
+            activeMode = 'director';
+            localStorage.setItem('activeMode', activeMode);
+
             checkAuthStatus();
             closeLoginModal();
             document.getElementById("loginForm").reset();
+
+            await loadDataDesdeAPI();
         } else {
             alert("Credenciales inválidas. Verificá tu email o contraseña.");
         }
@@ -86,33 +151,33 @@ async function login(event) {
     }
 }
 
-function logout() {
+async function logout() {
     localStorage.removeItem('token');
+    localStorage.removeItem('roles');
+    localStorage.removeItem('activeMode');
+    activeMode = 'director';
     checkAuthStatus();
+    await loadDataDesdeAPI();
 }
 
-/* =========================================
-   CARGAR DATOS DESDE LA API (MySQL)
-========================================= */
 async function loadDataDesdeAPI() {
     try {
-        // 1. Cargar Cuatrimestres y Materias 
+        // 1. Cargar Cuatrimestres y Materias (vista completa para el calendario)
         const resMaterias = await fetch('/api/cuatrimestres');
         const cuatrimestresData = await resMaterias.json();
         
         semesters = {};
         let colorIndex = 0;
 
-        // Construimos el objeto interno basándonos en los datos relacionales devueltos por MySQL
         cuatrimestresData.forEach(c => {
             semesters[c.numero] = {
                 id: c.id,
                 name: c.numero + "° Cuatrimestre",
-                subjects: c.materias.map(m => {
+                subjects: (c.materias || []).map(m => {
                     const assignedColor = colorsPalette[colorIndex % colorsPalette.length];
                     colorIndex++;
                     return {
-                        id: m.id, // Guardamos el ID real de MySQL
+                        id: m.id,
                         name: m.nombre,
                         color: assignedColor
                     };
@@ -120,12 +185,10 @@ async function loadDataDesdeAPI() {
             };
         });
 
-        // 2. Cargar Exámenes
         const resExamenes = await fetch('/api/examenes');
         const examenesData = await resExamenes.json();
         
         exams = examenesData.map(ex => {
-            // Buscamos a qué cuatrimestre y materia corresponde el materia_id de la BD
             let subjectName = "Materia Desconocida";
             let semesterNum = 1;
 
@@ -138,35 +201,95 @@ async function loadDataDesdeAPI() {
                 }
             }
 
-            // Normalizar la fecha ISO
-            const dateOnly = ex.fecha.split('T')[0];
+            const dateOnly = ex.fecha ? ex.fecha.split('T')[0] : "";
 
             return {
                 id: ex.id,
                 semester: semesterNum,
                 subject: subjectName,
                 date: dateOnly,
-                time: "00:00", // El backend agrupa esto en titulo, mantenemos para la UI
+                time: "00:00",
                 type: ex.titulo,
                 units: ex.unidades_evaluadas,
                 description: ""
             };
         });
 
-        // 3. Renderizar la UI con los datos
+        // 3. Renderizar Vistas
         loadSemester();
-        populateTeacherSubjects();
+        await populateTeacherSubjects();
         renderCalendar();
         renderExamList();
 
     } catch (error) {
-        console.error("Error obteniendo datos del backend:", error);
+        console.error("Error al obtener datos:", error);
     }
 }
 
-/* =========================================
-   OBTENER MATERIA
-========================================= */
+async function populateTeacherSubjects() {
+    const select = document.getElementById("examSubject");
+    if (!select) return;
+    select.innerHTML = "";
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch('/api/profesor/materias', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) return;
+
+        const materias = await response.json();
+
+        if (materias.length === 0) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "No tienes materias asignadas";
+            select.appendChild(option);
+            return;
+        }
+
+        if (materias.length > 3) {
+            Object.entries(semesters).forEach(([semesterNumber, semester]) => {
+                const group = document.createElement("optgroup");
+                group.label = semester.name;
+
+                const materiasDelCuatrimestre = semester.subjects.filter(s => 
+                    materias.some(m => m.id === s.id)
+                );
+
+                materiasDelCuatrimestre.forEach(subject => {
+                    const option = document.createElement("option");
+                    option.value = subject.id;
+                    option.textContent = subject.name;
+                    group.appendChild(option);
+                });
+
+                if (materiasDelCuatrimestre.length > 0) {
+                    select.appendChild(group);
+                }
+            });
+        } else {
+            // Si es un Profesor, lista únicamente las materias asignadas a él
+            materias.forEach(subject => {
+                const option = document.createElement("option");
+                option.value = subject.id;
+                option.textContent = subject.nombre || subject.name;
+                select.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error al cargar materias en el selector:", error);
+    }
+}
+
 function getSubject(subjectName) {
     for (const semester of Object.values(semesters)) {
         const subject = semester.subjects.find(item => item.name === subjectName);
@@ -175,30 +298,30 @@ function getSubject(subjectName) {
     return { name: subjectName, color: "#64748B" };
 }
 
-/* =========================================
-   CAMBIAR CUATRIMESTRE
-========================================= */
 function selectSemester(semesterNumber) {
     currentSemester = semesterNumber;
     selectedSubject = "all";
 
     document.querySelectorAll(".semester").forEach(btn => btn.classList.remove("active"));
-    document.querySelectorAll(".semester")[semesterNumber - 1].classList.add("active");
+    const buttons = document.querySelectorAll(".semester");
+    if (buttons[semesterNumber - 1]) {
+        buttons[semesterNumber - 1].classList.add("active");
+    }
 
     loadSemester();
     renderCalendar();
     renderExamList();
 }
 
-/* =========================================
-   CARGAR MATERIAS EN LA VISTA
-========================================= */
 function loadSemester() {
     const semester = semesters[currentSemester];
     if (!semester) return;
 
-    document.getElementById("semesterTitle").textContent = semester.name;
+    const titleEl = document.getElementById("semesterTitle");
+    if (titleEl) titleEl.textContent = semester.name;
+
     const subjectsContainer = document.getElementById("subjects");
+    if (!subjectsContainer) return;
     subjectsContainer.innerHTML = "";
 
     semester.subjects.forEach((subject, index) => {
@@ -217,14 +340,12 @@ function loadSemester() {
     renderLegend();
 }
 
-/* =========================================
-   FILTRO DE MATERIAS
-========================================= */
 function updateFilter() {
     const filter = document.getElementById("subjectFilter");
+    if (!filter) return;
     filter.innerHTML = `<option value="all">Todas las materias</option>`;
 
-    if(semesters[currentSemester]) {
+    if (semesters[currentSemester]) {
         semesters[currentSemester].subjects.forEach(subject => {
             const option = document.createElement("option");
             option.value = subject.name;
@@ -236,14 +357,12 @@ function updateFilter() {
 }
 
 function filterExams() {
-    selectedSubject = document.getElementById("subjectFilter").value;
+    const filter = document.getElementById("subjectFilter");
+    if (filter) selectedSubject = filter.value;
     renderCalendar();
     renderExamList();
 }
 
-/* =========================================
-   NAVEGAR MES
-========================================= */
 function changeMonth(direction) {
     currentDate.setMonth(currentDate.getMonth() + direction);
     renderCalendar();
@@ -264,18 +383,18 @@ function getVisibleExams() {
     });
 }
 
-/* =========================================
-   CALENDARIO
-========================================= */
 function renderCalendar() {
     const calendar = document.getElementById("calendar");
+    if (!calendar) return;
     calendar.innerHTML = "";
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    const monthName = currentDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-    document.getElementById("monthTitle").textContent = monthName;
+    const monthTitle = document.getElementById("monthTitle");
+    if (monthTitle) {
+        monthTitle.textContent = currentDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+    }
 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
@@ -360,9 +479,10 @@ function createDayCell(date, otherMonth) {
 
 function renderLegend() {
     const container = document.getElementById("legendItems");
+    if (!container) return;
     container.innerHTML = "";
     
-    if(!semesters[currentSemester]) return;
+    if (!semesters[currentSemester]) return;
 
     semesters[currentSemester].subjects.forEach(subject => {
         const item = document.createElement("div");
@@ -375,15 +495,12 @@ function renderLegend() {
     });
 }
 
-/* =========================================
-   LISTA DE EXÁMENES
-========================================= */
 function renderExamList() {
     const container = document.getElementById("examList");
+    if (!container) return;
     container.innerHTML = "";
 
     let visible = getVisibleExams();
-
     visible.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (visible.length === 0) {
@@ -396,7 +513,6 @@ function renderExamList() {
     const list = document.createElement("div");
     list.className = "exam-list";
 
-    // Verificamos si hay token para saber si pintar la 'x' de borrar
     const token = localStorage.getItem('token');
     const isLogged = !!token;
 
@@ -405,7 +521,6 @@ function renderExamList() {
         const item = document.createElement("div");
         item.className = "exam-item";
 
-        // Formateo estricto para evitar desfases de zona horaria
         const partesFecha = exam.date.split('-');
         const fechaObj = new Date(partesFecha[0], partesFecha[1] - 1, partesFecha[2]);
 
@@ -433,42 +548,24 @@ function renderExamList() {
 }
 
 /* =========================================
-   MATERIAS PARA EL PROFESOR (MODAL)
-========================================= */
-function populateTeacherSubjects() {
-    const select = document.getElementById("examSubject");
-    select.innerHTML = "";
-
-    Object.entries(semesters).forEach(([semesterNumber, semester]) => {
-        const group = document.createElement("optgroup");
-        group.label = semester.name;
-
-        semester.subjects.forEach(subject => {
-            const option = document.createElement("option");
-            // Se envía el ID de MySQL directamente como valor[cite: 9]
-            option.value = subject.id;
-            option.textContent = subject.name;
-            group.appendChild(option);
-        });
-
-        select.appendChild(group);
-    });
-}
-
-/* =========================================
-   MODAL EXÁMENES
+   MODALES Y ACCIONES DE EXAMEN
 ========================================= */
 function openExamModal() {
-    document.getElementById("examModal").classList.add("show");
+    const modal = document.getElementById("examModal");
+    if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "block";
+    }
 }
 
 function closeExamModal() {
-    document.getElementById("examModal").classList.remove("show");
+    const modal = document.getElementById("examModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
 }
 
-/* =========================================
-   AGREGAR EXAMEN EN LA BD
-========================================= */
 async function addExam(event) {
     event.preventDefault();
 
@@ -479,7 +576,6 @@ async function addExam(event) {
     const units = document.getElementById("examUnits").value.trim();
     const description = document.getElementById("examDescription").value.trim();
 
-    // El backend espera la información en un solo 'titulo', unimos la hora y el tipo para no perderlo[cite: 9]
     const tituloFinal = `${type} (${time}hs) ${description ? '- ' + description : ''}`;
 
     const nuevoExamenPayload = {
@@ -501,7 +597,6 @@ async function addExam(event) {
         });
 
         if (response.ok) {
-            // Recargar datos desde MySQL para actualizar la interfaz
             await loadDataDesdeAPI();
             
             const examDate = new Date(`${date}T00:00:00`);
@@ -511,16 +606,14 @@ async function addExam(event) {
             closeExamModal();
             document.getElementById("examForm").reset();
         } else {
-            alert("Acceso denegado: Necesitas iniciar sesión para crear exámenes.");
+            const errData = await response.json();
+            alert(`Error: ${errData.message || 'No se pudo crear el examen'}`);
         }
     } catch (error) {
         console.error("Error conectando al backend:", error);
     }
 }
 
-/* =========================================
-   ELIMINAR EXAMEN DE LA BD
-========================================= */
 async function deleteExam(id) {
     const confirmed = confirm(`¿Querés eliminar este examen del calendario?`);
     if (!confirmed) return;
@@ -540,13 +633,10 @@ async function deleteExam(id) {
             alert("Acceso denegado: No tienes permiso para borrar exámenes.");
         }
     } catch (error) {
-        console.error("Error al eliminar:", error);
+        console.error("Error al eliminar examen:", error);
     }
 }
 
-/* =========================================
-   CERRAR MODALES CLICK AFUERA
-========================================= */
 window.addEventListener("click", event => {
     const examModal = document.getElementById("examModal");
     const loginModal = document.getElementById("loginModal");

@@ -11,6 +11,7 @@ const verifyToken = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
+        // decoded contiene { id, email, roles: [...] }
         req.user = decoded; 
         next();
     } catch (error) {
@@ -18,13 +19,20 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-const checkRole = (...rolesPermitidosIds) => {
+/**
+ * Middleware para validar si el usuario autenticado posee al menos uno de los roles permitidos.
+ * @param  {...string} rolesPermitidos - Nombres de los roles permitidos (ej: 'director', 'profesor')
+ */
+const checkRole = (...rolesPermitidos) => {
     return (req, res, next) => {
-        if (!req.user || !req.user.rol_id) {
-            return res.status(403).json({ message: 'No se pudo verificar el rol del usuario.' });
+        if (!req.user || !req.user.roles || !Array.isArray(req.user.roles)) {
+            return res.status(403).json({ message: 'No se pudo verificar los roles del usuario.' });
         }
 
-        if (!rolesPermitidosIds.includes(req.user.rol_id)) {
+        // Comprobar si el usuario tiene al menos uno de los roles permitidos en su arreglo de roles
+        const tienePermiso = req.user.roles.some(rol => rolesPermitidos.includes(rol));
+
+        if (!tienePermiso) {
             return res.status(403).json({ 
                 message: 'Acceso denegado. No tienes los permisos necesarios para realizar esta acción.' 
             });
