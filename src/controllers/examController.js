@@ -1,5 +1,110 @@
 const pool = require('../config/database');
 
+class Usuario {
+    constructor(id, email, roles) {
+        this.id = id;
+        this.email = email;
+        this.roles = roles;
+    }
+
+    async obtenerMaterias() {
+        throw new Error("El método obtenerMaterias() debe ser implementado por la subclase.");
+    }
+}
+
+// Director: ve la totalidad de las materias del plan de estudios
+class Director extends Usuario {
+    async obtenerMaterias() {
+        const query = `
+            SELECT id, nombre, cuatrimestre_id, profesor_id 
+            FROM materias 
+            ORDER BY cuatrimestre_id ASC, nombre ASC
+        `;
+        const [rows] = await pool.query(query);
+        return rows;
+    }
+}
+
+// Profesor: ve únicamente las materias donde figure como profesor_id
+class Profesor extends Usuario {
+    async obtenerMaterias() {
+        const query = `
+            SELECT id, nombre, cuatrimestre_id, profesor_id 
+            FROM materias 
+            WHERE profesor_id = ? 
+            ORDER BY cuatrimestre_id ASC, nombre ASC
+        `;
+        const [rows] = await pool.query(query, [this.id]);
+        return rows;
+    }
+}
+
+// Factory: evalúa los roles del token JWT y genera la instancia adecuada
+class UserFactory {
+    static createUser(userData) {
+        const { id, email, roles } = userData;
+
+        if (Array.isArray(roles) && roles.includes('director')) {
+            return new Director(id, email, roles);
+        }
+
+        if (Array.isArray(roles) && roles.includes('profesor')) {
+            return new Profesor(id, email, roles);
+        }
+
+        throw new Error('Rol no reconocido para gestionar materias.');
+    }
+}
+
+class ExamBuilder {
+    constructor() {
+        this.materia_id = null;
+        this.fecha = null;
+        this.titulo = null;
+        this.unidades_evaluadas = null;
+        this.creado_por = null;
+    }
+
+    setMateriaId(materia_id) {
+        this.materia_id = materia_id;
+        return this;
+    }
+
+    setFecha(fecha) {
+        this.fecha = fecha;
+        return this;
+    }
+
+    setTitulo(titulo) {
+        this.titulo = titulo;
+        return this;
+    }
+
+    setUnidadesEvaluadas(unidades) {
+        this.unidades_evaluadas = unidades;
+        return this;
+    }
+
+    setCreadoPor(usuarioId) {
+        this.creado_por = usuarioId;
+        return this;
+    }
+
+    build() {
+        if (!this.materia_id || !this.fecha || !this.titulo || !this.unidades_evaluadas) {
+            throw new Error('Todos los campos del examen son obligatorios.');
+        }
+
+        return [
+            this.materia_id,
+            this.fecha,
+            this.titulo,
+            this.unidades_evaluadas,
+            this.creado_por
+        ];
+    }
+}
+
 const obtenerCuatrimestres = async (req, res) => {
     try {
         const query = `
@@ -16,7 +121,6 @@ const obtenerCuatrimestres = async (req, res) => {
         const [rows] = await pool.query(query);
 
         const cuatrimestresMap = {};
-
         rows.forEach(row => {
             if (!cuatrimestresMap[row.cuatrimestre_id]) {
                 cuatrimestresMap[row.cuatrimestre_id] = {
@@ -25,7 +129,6 @@ const obtenerCuatrimestres = async (req, res) => {
                     materias: []
                 };
             }
-
             if (row.materia_id) {
                 cuatrimestresMap[row.cuatrimestre_id].materias.push({
                     id: row.materia_id,
@@ -56,7 +159,6 @@ const obtenerExamenes = async (req, res) => {
             query += ' WHERE e.materia_id = ?';
             params.push(materia_id);
         }
-        
         query += ' ORDER BY e.fecha ASC';
 
         const [rows] = await pool.query(query, params);
@@ -67,22 +169,26 @@ const obtenerExamenes = async (req, res) => {
 };
 
 const crearExamen = async (req, res) => {
-    const { materia_id, fecha, titulo, unidades_evaluadas } = req.body;
-    // El ID del usuario autenticado viene del middleware de autenticación (JWT)
-    const creado_por = req.user ? req.user.id : null; 
-
-    if (!materia_id || !fecha || !titulo || !unidades_evaluadas) {
-        return res.status(400).json({ message: 'Todos los campos del examen son obligatorios.' });
-    }
-
     try {
+        const { materia_id, fecha, titulo, unidades_evaluadas } = req.body;
+        const creado_por = req.user ? req.user.id : null;
+
+        const examenParams = new ExamBuilder()
+            .setMateriaId(materia_id)
+            .setFecha(fecha)
+            .setTitulo(titulo)
+            .setUnidadesEvaluadas(unidades_evaluadas)
+            .setCreadoPor(creado_por)
+            .build();
+
         await pool.query(
             'INSERT INTO examenes (materia_id, fecha, titulo, unidades_evaluadas, creado_por) VALUES (?, ?, ?, ?, ?)',
-            [materia_id, fecha, titulo, unidades_evaluadas, creado_por]
+            examenParams
         );
+
         res.status(201).json({ message: 'Examen creado exitosamente' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(400).json({ message: error.message });
     }
 };
 
@@ -126,37 +232,11 @@ const eliminarExamen = async (req, res) => {
 };
 
 const obtenerMateriasProfesor = async (req, res) => {
-    const usuarioId = req.user.id;
-
     try {
-        // Consultamos los IDs de los roles que tiene este usuario en la tabla pivote
-        const [rolesRows] = await pool.query(`
-            SELECT rol_id FROM usuario_rol WHERE usuario_id = ?
-        `, [usuarioId]);
-
-        const idsRoles = rolesRows.map(r => r.rol_id);
-        
-        // Asumiendo según tu tabla que el rol_id 1 es Director y el rol_id 2 es Profesor
-        const esDirector = idsRoles.includes(1); 
-
-        let materias = [];
-
-        if (esDirector) {
-            // Si tiene el rol de Director (usuario 1), ve absolutamente todas las materias
-            const [rows] = await pool.query('SELECT id, nombre, cuatrimestre_id, profesor_id FROM materias ORDER BY cuatrimestre_id ASC, nombre ASC');
-            materias = rows;
-        } else {
-            // Si NO es director (usuario 2, que solo tiene rol 2), filtra estrictamente por su ID en profesor_id
-            const [rows] = await pool.query(
-                'SELECT id, nombre, cuatrimestre_id, profesor_id FROM materias WHERE profesor_id = ?', 
-                [usuarioId]
-            );
-            materias = rows;
-        }
-
+        const usuario = UserFactory.createUser(req.user);
+        const materias = await usuario.obtenerMaterias();
         res.json(materias);
     } catch (error) {
-        console.error("Error en obtenerMateriasProfesor:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -166,6 +246,6 @@ module.exports = {
     obtenerExamenes, 
     crearExamen, 
     actualizarExamen, 
-    eliminarExamen,
+    eliminarExamen, 
     obtenerMateriasProfesor 
 };
