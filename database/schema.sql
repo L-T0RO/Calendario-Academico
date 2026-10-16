@@ -1,6 +1,9 @@
 -- ==========================================
 -- SCRIPT SQL DE INICIALIZACIÓN (schema.sql) - Versión V4
 -- ==========================================
+DROP DATABASE IF EXISTS calendario_carrera;
+CREATE DATABASE calendario_carrera CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE calendario_carrera;
 
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
