@@ -17,8 +17,12 @@ app.use('/api', apiRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+// Solo levanta el servidor si el archivo se ejecuta directamente (npm start)
+// Si lo requiere Jest/Supertest para pruebas, omite app.listen
+if (require.main === module) {
+  app.listen(PORT, () => {
     console.log(`🚀 Servidor del Calendario Académico corriendo en http://localhost:${PORT}`);
-});
+  });
+}
 
 module.exports = app;
