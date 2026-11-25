@@ -153,7 +153,7 @@ const obtenerExamenes = async (req, res) => {
             JOIN materias m ON e.materia_id = m.id
             JOIN usuarios u ON e.creado_por = u.id
         `;
-        let params = [];
+        const params = [];
         
         if (materia_id) {
             query += ' WHERE e.materia_id = ?';

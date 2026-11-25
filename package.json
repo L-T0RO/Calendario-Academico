@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
-  "scripts": {
-    "start": "node src/app.js",
-    "test": "jest --verbose --forceExit",
-    "lint": "eslint src/ tests/"
-  },
+"scripts": {
+  "start": "node src/app.js",
+  "dev": "nodemon src/app.js",
+  "test": "jest --verbose --forceExit",
+  "lint": "eslint src/ test/"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/L-T0RO/Calendario-Academico.git"
@@ -29,6 +30,11 @@
     "mysql2": "^3.24.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.2"
   }
 }
