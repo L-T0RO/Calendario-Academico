@@ -57,7 +57,6 @@ function checkAuthStatus() {
         if (logoutBtn) logoutBtn.classList.remove('hidden');
 
         if (esDirector) {
-            // Mostrar botón para alternar de rol
             if (toggleRoleBtn) {
                 toggleRoleBtn.classList.remove('hidden');
                 toggleRoleBtn.textContent = (activeMode === 'profesor')
@@ -71,6 +70,8 @@ function checkAuthStatus() {
                 if (addExamBtn) addExamBtn.classList.add('hidden');
             }
         } else {
+            activeMode = 'profesor';
+            localStorage.setItem('activeMode', activeMode);
             if (toggleRoleBtn) toggleRoleBtn.classList.add('hidden');
             if (addExamBtn) addExamBtn.classList.remove('hidden');
         }
@@ -134,7 +135,7 @@ async function login(event) {
             }
             localStorage.setItem('roles', JSON.stringify(roles));
 
-            activeMode = 'director';
+            activeMode = roles.includes('director') ? 'director' : 'profesor';
             localStorage.setItem('activeMode', activeMode);
 
             checkAuthStatus();
@@ -235,7 +236,7 @@ async function populateTeacherSubjects() {
     if (!token) return;
 
     try {
-        const response = await fetch('/api/profesor/materias', {
+        const response = await fetch(`/api/profesor/materias?modo=${encodeURIComponent(activeMode)}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -255,7 +256,7 @@ async function populateTeacherSubjects() {
             return;
         }
 
-        if (materias.length > 3) {
+        if (activeMode === 'director' && materias.length > 3) {
             Object.entries(semesters).forEach(([semesterNumber, semester]) => {
                 const group = document.createElement("optgroup");
                 group.label = semester.name;
@@ -276,7 +277,6 @@ async function populateTeacherSubjects() {
                 }
             });
         } else {
-            // Si es un Profesor, lista únicamente las materias asignadas a él
             materias.forEach(subject => {
                 const option = document.createElement("option");
                 option.value = subject.id;

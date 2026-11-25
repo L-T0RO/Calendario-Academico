@@ -17,7 +17,7 @@ INSERT INTO cuatrimestres (id, numero) VALUES
 -- ==========================================
 -- Contraseña por defecto (hasheada con bcrypt): 'password123'
 INSERT INTO usuarios (id, nombre, email, password) VALUES 
-(1, 'Director Académico', 'director@utn.edu.ar', '$2b$10$t/Z5csGzR8B01gdSOIHf.irXWHmaD...');
+(1, 'Director Académico', 'director@utn.edu.ar', '$2b$10$ZIs2.tqmyfTMHz/k2NU31eivqu/Nq9ofbym/mqcIScCl6o25x/3Ma');
 
 -- Asignación de roles múltiples mediante la tabla pivote (Usuario 1 es Director y Profesor)
 INSERT INTO usuario_rol (usuario_id, rol_id) VALUES 

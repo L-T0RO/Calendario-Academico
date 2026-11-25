@@ -39,10 +39,14 @@ class Profesor extends Usuario {
     }
 }
 
-// Factory: evalúa los roles del token JWT y genera la instancia adecuada
+// Factory: evalúa los roles del token JWT y el modo activo para generar la instancia adecuada
 class UserFactory {
-    static createUser(userData) {
+    static createUser(userData, modo = null) {
         const { id, email, roles } = userData;
+
+        if (modo === 'profesor' && Array.isArray(roles) && (roles.includes('profesor') || roles.includes('director'))) {
+            return new Profesor(id, email, roles);
+        }
 
         if (Array.isArray(roles) && roles.includes('director')) {
             return new Director(id, email, roles);
@@ -233,7 +237,8 @@ const eliminarExamen = async (req, res) => {
 
 const obtenerMateriasProfesor = async (req, res) => {
     try {
-        const usuario = UserFactory.createUser(req.user);
+        const { modo } = req.query;
+        const usuario = UserFactory.createUser(req.user, modo);
         const materias = await usuario.obtenerMaterias();
         res.json(materias);
     } catch (error) {
