@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
-"scripts": {
-  "start": "node src/app.js",
-  "dev": "nodemon src/app.js",
-  "test": "jest --verbose --forceExit",
-  "lint": "eslint src/ test/"
-},
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest --verbose --forceExit",
+    "lint": "eslint src/ test/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/L-T0RO/Calendario-Academico.git"
