@@ -39,7 +39,12 @@ function checkAuthStatus() {
     let roles = [];
     const rolesGuardados = localStorage.getItem('roles');
     if (rolesGuardados) {
-        try { roles = JSON.parse(rolesGuardados); } catch(e) {}
+        try {
+    roles = JSON.parse(rolesGuardados);
+    } catch {
+       // JSON no válido en localStorage
+    }
+    
     } else if (token) {
         const payload = parseJwt(token);
         if (payload && payload.roles) roles = payload.roles;
