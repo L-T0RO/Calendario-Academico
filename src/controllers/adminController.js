@@ -4,12 +4,29 @@ const bcrypt = require('bcryptjs');
 const obtenerProfesores = async (req, res) => {
     try {
         const [rows] = await pool.query(`
-            SELECT u.id, u.nombre, u.email 
+            SELECT 
+                u.id, 
+                u.nombre, 
+                u.email,
+                GROUP_CONCAT(DISTINCT r.nombre ORDER BY r.id SEPARATOR ',') AS roles_str,
+                GROUP_CONCAT(DISTINCT r.id ORDER BY r.id SEPARATOR ',') AS roles_ids_str
             FROM usuarios u
-            JOIN usuario_rol ur ON u.id = ur.usuario_id
-            WHERE ur.rol_id = 2
+            JOIN usuario_rol ur_prof ON u.id = ur_prof.usuario_id AND ur_prof.rol_id = 2
+            LEFT JOIN usuario_rol ur_all ON u.id = ur_all.usuario_id
+            LEFT JOIN roles r ON ur_all.rol_id = r.id
+            GROUP BY u.id, u.nombre, u.email
+            ORDER BY u.id ASC
         `);
-        res.json(rows);
+
+        const profesores = rows.map(row => ({
+            id: row.id,
+            nombre: row.nombre,
+            email: row.email,
+            roles: row.roles_str ? row.roles_str.split(',') : [],
+            rolesIds: row.roles_ids_str ? row.roles_ids_str.split(',').map(Number) : []
+        }));
+
+        res.json(profesores);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

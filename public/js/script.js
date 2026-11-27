@@ -40,11 +40,10 @@ function checkAuthStatus() {
     const rolesGuardados = localStorage.getItem('roles');
     if (rolesGuardados) {
         try {
-    roles = JSON.parse(rolesGuardados);
-    } catch {
-       // JSON no válido en localStorage
-    }
-    
+            roles = JSON.parse(rolesGuardados);
+        } catch {
+            // JSON no válido en localStorage
+        }
     } else if (token) {
         const payload = parseJwt(token);
         if (payload && payload.roles) roles = payload.roles;
@@ -54,6 +53,7 @@ function checkAuthStatus() {
     const addExamBtn = document.getElementById('addExamBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const toggleRoleBtn = document.getElementById('toggleRoleBtn');
+    const manageTeachersBtn = document.getElementById('manageTeachersBtn');
     
     const esDirector = Array.isArray(roles) && roles.includes('director');
 
@@ -71,13 +71,16 @@ function checkAuthStatus() {
 
             if (activeMode === 'profesor') {
                 if (addExamBtn) addExamBtn.classList.remove('hidden');
+                if (manageTeachersBtn) manageTeachersBtn.classList.add('hidden');
             } else {
                 if (addExamBtn) addExamBtn.classList.add('hidden');
+                if (manageTeachersBtn) manageTeachersBtn.classList.remove('hidden');
             }
         } else {
             activeMode = 'profesor';
             localStorage.setItem('activeMode', activeMode);
             if (toggleRoleBtn) toggleRoleBtn.classList.add('hidden');
+            if (manageTeachersBtn) manageTeachersBtn.classList.add('hidden');
             if (addExamBtn) addExamBtn.classList.remove('hidden');
         }
     } else {
@@ -85,6 +88,7 @@ function checkAuthStatus() {
         if (addExamBtn) addExamBtn.classList.add('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (toggleRoleBtn) toggleRoleBtn.classList.add('hidden');
+        if (manageTeachersBtn) manageTeachersBtn.classList.add('hidden');
     }
     
     renderExamList();
@@ -185,7 +189,8 @@ async function loadDataDesdeAPI() {
                     return {
                         id: m.id,
                         name: m.nombre,
-                        color: assignedColor
+                        color: assignedColor,
+                        profesorId: m.profesor_id
                     };
                 })
             };
@@ -642,16 +647,461 @@ async function deleteExam(id) {
     }
 }
 
+/* =========================================
+   PANEL DEL DIRECTOR: GESTIÓN DE PROFESORES
+========================================= */
+let teachersList = [];
+
+async function openTeachersModal() {
+    const modal = document.getElementById("teachersModal");
+    if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "flex";
+    }
+    await loadTeachers();
+}
+
+function closeTeachersModal() {
+    closeAllActionMenus();
+    const modal = document.getElementById("teachersModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function loadTeachers() {
+    const tbody = document.getElementById("teachersTableBody");
+    if (!tbody) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const res = await fetch('/api/profesores', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">No se pudo cargar la lista de profesores.</td></tr>`;
+            return;
+        }
+
+        teachersList = await res.json();
+        renderTeachersTable();
+    } catch (error) {
+        console.error("Error al obtener profesores:", error);
+    }
+}
+
+function renderTeachersTable() {
+    const tbody = document.getElementById("teachersTableBody");
+    if (!tbody) return;
+
+    if (teachersList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-light);">No hay profesores registrados.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = teachersList.map(prof => {
+        const roles = Array.isArray(prof.roles) && prof.roles.length > 0 ? prof.roles : ['profesor'];
+        const rolesHTML = roles.map(rol => {
+            const label = rol.charAt(0).toUpperCase() + rol.slice(1);
+            const extraClass = rol === 'director' ? 'director' : '';
+            return `<span class="role-badge ${extraClass}">[${label}]</span>`;
+        }).join('');
+
+        return `
+            <tr>
+                <td><strong>${prof.id}</strong></td>
+                <td>${prof.nombre}</td>
+                <td>${prof.email}</td>
+                <td>${rolesHTML}</td>
+                <td style="text-align: center;">
+                    <button type="button" class="actions-btn" title="Acciones" onclick="toggleTeacherActionsMenu(event, ${prof.id})">⋮</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function toggleTeacherActionsMenu(event, teacherId) {
+    event.stopPropagation();
+    const menu = document.getElementById("teacherActionsMenu");
+    if (!menu) return;
+
+    const isSameOpen = !menu.classList.contains("hidden") && menu.dataset.teacherId === String(teacherId);
+    closeAllActionMenus();
+
+    if (isSameOpen) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    menu.dataset.teacherId = String(teacherId);
+    menu.innerHTML = `
+        <button type="button" class="actions-dropdown-item" onclick="openEditTeacherModal(${teacherId})">Editar</button>
+        <button type="button" class="actions-dropdown-item" onclick="openChangePasswordModal(${teacherId})">Cambiar Contraseña</button>
+        <button type="button" class="actions-dropdown-item" onclick="openAssignRolesModal(${teacherId})">Asignar Rol</button>
+        <button type="button" class="actions-dropdown-item" onclick="openAssignSubjectModal(${teacherId})">Asignar Materia</button>
+        <button type="button" class="actions-dropdown-item danger" onclick="deleteTeacher(${teacherId})">Eliminar</button>
+    `;
+
+    menu.classList.remove("hidden");
+
+    const menuWidth = 195;
+    const leftPos = Math.min(window.innerWidth - menuWidth - 16, Math.max(16, rect.right - menuWidth));
+    const topPos = Math.min(window.innerHeight - 230, rect.bottom + 6);
+
+    menu.style.left = `${leftPos}px`;
+    menu.style.top = `${topPos}px`;
+}
+
+function closeAllActionMenus() {
+    const menu = document.getElementById("teacherActionsMenu");
+    if (menu) {
+        menu.classList.add("hidden");
+        delete menu.dataset.teacherId;
+    }
+}
+
+/* --- Crear / Editar Profesor --- */
+function openCreateTeacherModal() {
+    closeAllActionMenus();
+    document.getElementById("teacherForm").reset();
+    document.getElementById("teacherFormId").value = "";
+    document.getElementById("teacherFormTitle").textContent = "Nuevo Profesor";
+    document.getElementById("teacherFormSubtitle").textContent = "Completá los datos para registrar un docente.";
+    document.getElementById("teacherFormSubmitBtn").textContent = "Crear Profesor";
+
+    const passGroup = document.getElementById("teacherPasswordGroup");
+    const passInput = document.getElementById("teacherPassword");
+    passGroup.classList.remove("hidden");
+    passInput.required = true;
+
+    const modal = document.getElementById("teacherFormModal");
+    modal.classList.add("show");
+    modal.style.display = "flex";
+}
+
+function openEditTeacherModal(teacherId) {
+    closeAllActionMenus();
+    const prof = teachersList.find(p => p.id === teacherId);
+    if (!prof) return;
+
+    document.getElementById("teacherFormId").value = prof.id;
+    document.getElementById("teacherName").value = prof.nombre;
+    document.getElementById("teacherEmail").value = prof.email;
+    document.getElementById("teacherFormTitle").textContent = "Editar Profesor";
+    document.getElementById("teacherFormSubtitle").textContent = `Editando a ${prof.nombre}`;
+    document.getElementById("teacherFormSubmitBtn").textContent = "Guardar Cambios";
+
+    const passGroup = document.getElementById("teacherPasswordGroup");
+    const passInput = document.getElementById("teacherPassword");
+    passGroup.classList.add("hidden");
+    passInput.required = false;
+    passInput.value = "";
+
+    const modal = document.getElementById("teacherFormModal");
+    modal.classList.add("show");
+    modal.style.display = "flex";
+}
+
+function closeTeacherFormModal() {
+    const modal = document.getElementById("teacherFormModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function saveTeacher(event) {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    const id = document.getElementById("teacherFormId").value;
+    const nombre = document.getElementById("teacherName").value.trim();
+    const email = document.getElementById("teacherEmail").value.trim();
+    const password = document.getElementById("teacherPassword").value;
+
+    const isEdit = Boolean(id);
+    const url = isEdit ? `/api/profesores/${id}` : '/api/profesores';
+    const method = isEdit ? 'PUT' : 'POST';
+    const payload = isEdit ? { nombre, email } : { nombre, email, password };
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            closeTeacherFormModal();
+            await loadTeachers();
+        } else {
+            alert(data.message || data.error || "No se pudo guardar el profesor.");
+        }
+    } catch (error) {
+        console.error("Error al guardar profesor:", error);
+    }
+}
+
+/* --- Cambiar Contraseña --- */
+function openChangePasswordModal(teacherId) {
+    closeAllActionMenus();
+    const prof = teachersList.find(p => p.id === teacherId);
+    if (!prof) return;
+
+    document.getElementById("teacherPasswordForm").reset();
+    document.getElementById("passwordTeacherId").value = prof.id;
+    document.getElementById("passwordTeacherName").textContent = `${prof.nombre} (${prof.email})`;
+
+    const modal = document.getElementById("teacherPasswordModal");
+    modal.classList.add("show");
+    modal.style.display = "flex";
+}
+
+function closePasswordModal() {
+    const modal = document.getElementById("teacherPasswordModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function saveTeacherPassword(event) {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    const id = document.getElementById("passwordTeacherId").value;
+    const nuevaPassword = document.getElementById("newTeacherPassword").value;
+
+    try {
+        const res = await fetch(`/api/profesores/${id}/password`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ nuevaPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert("Contraseña actualizada correctamente.");
+            closePasswordModal();
+        } else {
+            alert(data.message || data.error || "Error al actualizar la contraseña.");
+        }
+    } catch (error) {
+        console.error("Error al cambiar contraseña:", error);
+    }
+}
+
+/* --- Asignar Rol --- */
+function openAssignRolesModal(teacherId) {
+    closeAllActionMenus();
+    const prof = teachersList.find(p => p.id === teacherId);
+    if (!prof) return;
+
+    document.getElementById("rolesTeacherId").value = prof.id;
+    document.getElementById("rolesTeacherName").textContent = `${prof.nombre} (${prof.email})`;
+
+    const esDir = (Array.isArray(prof.roles) && prof.roles.includes('director')) ||
+                  (Array.isArray(prof.rolesIds) && prof.rolesIds.includes(1));
+    document.getElementById("roleDirector").checked = esDir;
+    document.getElementById("roleProfesor").checked = true;
+
+    const modal = document.getElementById("teacherRolesModal");
+    modal.classList.add("show");
+    modal.style.display = "flex";
+}
+
+function closeRolesModal() {
+    const modal = document.getElementById("teacherRolesModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function saveTeacherRoles(event) {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    const id = document.getElementById("rolesTeacherId").value;
+    const roles = [2]; // Rol profesor base
+    if (document.getElementById("roleDirector").checked) {
+        roles.unshift(1);
+    }
+
+    try {
+        const res = await fetch(`/api/profesores/${id}/roles`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ roles })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            closeRolesModal();
+            await loadTeachers();
+        } else {
+            alert(data.message || data.error || "Error al actualizar los roles.");
+        }
+    } catch (error) {
+        console.error("Error al asignar roles:", error);
+    }
+}
+
+/* --- Asignar Materia --- */
+function openAssignSubjectModal(teacherId) {
+    closeAllActionMenus();
+    const prof = teachersList.find(p => p.id === teacherId);
+    if (!prof) return;
+
+    document.getElementById("assignTeacherId").value = prof.id;
+    document.getElementById("assignTeacherName").textContent = `Docente: ${prof.nombre}`;
+
+    const select = document.getElementById("assignSubjectSelect");
+    select.innerHTML = "";
+
+    Object.values(semesters).forEach(semester => {
+        const group = document.createElement("optgroup");
+        group.label = semester.name;
+
+        semester.subjects.forEach(subject => {
+            const option = document.createElement("option");
+            option.value = subject.id;
+
+            let statusText = "";
+            if (subject.profesorId === prof.id) {
+                statusText = " (Ya asignada a este docente)";
+            } else if (subject.profesorId) {
+                const otroProfe = teachersList.find(p => p.id === subject.profesorId);
+                statusText = otroProfe ? ` (Actual: ${otroProfe.nombre})` : " (Asignada)";
+            }
+
+            option.textContent = `${subject.name}${statusText}`;
+            group.appendChild(option);
+        });
+
+        select.appendChild(group);
+    });
+
+    const modal = document.getElementById("assignSubjectModal");
+    modal.classList.add("show");
+    modal.style.display = "flex";
+}
+
+function closeAssignSubjectModal() {
+    const modal = document.getElementById("assignSubjectModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function saveAssignedSubject(event) {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+    const profesorId = parseInt(document.getElementById("assignTeacherId").value);
+    const materiaId = document.getElementById("assignSubjectSelect").value;
+
+    if (!materiaId) return;
+
+    try {
+        const res = await fetch(`/api/materias/${materiaId}/asignar`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ profesor_id: profesorId })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert("Materia asignada correctamente.");
+            closeAssignSubjectModal();
+            await loadDataDesdeAPI();
+        } else {
+            alert(data.message || data.error || "No se pudo asignar la materia.");
+        }
+    } catch (error) {
+        console.error("Error al asignar materia:", error);
+    }
+}
+
+/* --- Eliminar Profesor --- */
+async function deleteTeacher(teacherId) {
+    closeAllActionMenus();
+    const prof = teachersList.find(p => p.id === teacherId);
+    if (!prof) return;
+
+    const confirmed = confirm(`¿Seguro que querés eliminar al profesor "${prof.nombre}"?`);
+    if (!confirmed) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/profesores/${teacherId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            await loadTeachers();
+            await loadDataDesdeAPI();
+        } else {
+            alert(data.message || data.error || "No se pudo eliminar el profesor.");
+        }
+    } catch (error) {
+        console.error("Error al eliminar profesor:", error);
+    }
+}
+
 window.addEventListener("click", event => {
-    const examModal = document.getElementById("examModal");
-    const loginModal = document.getElementById("loginModal");
-    if (event.target === examModal) closeExamModal();
-    if (event.target === loginModal) closeLoginModal();
+    const menu = document.getElementById("teacherActionsMenu");
+    if (menu && !menu.contains(event.target) && !event.target.closest(".actions-btn")) {
+        closeAllActionMenus();
+    }
+
+    if (event.target === document.getElementById("examModal")) closeExamModal();
+    if (event.target === document.getElementById("loginModal")) closeLoginModal();
+    if (event.target === document.getElementById("teachersModal")) closeTeachersModal();
+    if (event.target === document.getElementById("teacherFormModal")) closeTeacherFormModal();
+    if (event.target === document.getElementById("teacherPasswordModal")) closePasswordModal();
+    if (event.target === document.getElementById("teacherRolesModal")) closeRolesModal();
+    if (event.target === document.getElementById("assignSubjectModal")) closeAssignSubjectModal();
 });
 
 window.addEventListener("keydown", event => {
     if (event.key === "Escape") {
-        closeExamModal();
-        closeLoginModal();
+        closeAllActionMenus();
+        const nestedModals = [
+            "teacherFormModal",
+            "teacherPasswordModal",
+            "teacherRolesModal",
+            "assignSubjectModal"
+        ];
+        const anyNestedOpen = nestedModals.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains("show");
+        });
+
+        if (anyNestedOpen) {
+            closeTeacherFormModal();
+            closePasswordModal();
+            closeRolesModal();
+            closeAssignSubjectModal();
+        } else {
+            closeExamModal();
+            closeLoginModal();
+            closeTeachersModal();
+        }
     }
 });
