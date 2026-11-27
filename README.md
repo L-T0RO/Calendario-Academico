@@ -177,9 +177,32 @@ Las pruebas cubren tres categorías principales de validación:
 
 Para mantener un estándar uniforme, detectar errores sintácticos tempranos y evitar malas prácticas en JavaScript, se configuró **ESLint** mediante el archivo `eslint.config mjs`.
 
-### Ejecución del linter
+### Instalación eslint
+
+Si aún no tienes instaladas las dependencias del proyecto, ejecuta:
+
 ```bash
-npx eslint .
+npm install
+```
+
+Para instalar ESLint manualmente como dependencia de desarrollo desde cero:
+
+```bash
+npm install --save-dev eslint
+```
+
+### Ejecución del linter
+
+Asegúrate de tener el script `"lint": "eslint ."` en tu `package.json` y ejecuta:
+
+```bash
+npm run lint
+```
+
+*(Opcional) Para corregir automáticamente los errores que lo permitan:*
+
+```bash
+npm run lint -- --fix
 ```
 
 ### Mejoras aplicadas
