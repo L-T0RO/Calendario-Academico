@@ -724,3 +724,201 @@ textarea {
     .exam-event-time { font-size: 7px; }
     .form-row { grid-template-columns: 1fr; }
 }
+
+/* =========================================
+   PANEL DE DIRECCIÓN Y GESTIÓN DE PROFESORES
+========================================= */
+.teacher-button.secondary {
+    background: #e2e8f0;
+    color: var(--text);
+}
+
+.teacher-button.secondary:hover {
+    background: #cbd5e1;
+}
+
+.modal-wide {
+    width: min(820px, 100%);
+    padding: 32px;
+}
+
+.modal-nested {
+    z-index: 1100;
+}
+
+.teachers-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 10px;
+    margin-bottom: 24px;
+    padding-right: 30px;
+}
+
+.teachers-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.teachers-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.teachers-table thead {
+    background: var(--surface-light);
+    border-bottom: 1px solid var(--border);
+}
+
+.teachers-table th {
+    padding: 13px 16px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.teachers-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+}
+
+.teachers-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.teachers-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    margin-right: 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.role-badge.director {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.actions-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+}
+
+.actions-btn:hover {
+    background: var(--surface-light);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.actions-dropdown {
+    position: fixed;
+    z-index: 1200;
+    min-width: 190px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+}
+
+.actions-dropdown-item {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.actions-dropdown-item:hover {
+    background: var(--surface-light);
+}
+
+.actions-dropdown-item.danger {
+    color: var(--danger);
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 11px;
+    border-radius: 0 0 8px 8px;
+}
+
+.actions-dropdown-item.danger:hover {
+    background: #fef2f2;
+}
+
+.roles-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.role-checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.role-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--primary);
+}
+
+.role-checkbox-item strong {
+    display: block;
+    font-size: 14px;
+}
+
+.role-checkbox-item span {
+    display: block;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+@media (max-width: 650px) {
+    .teachers-modal-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

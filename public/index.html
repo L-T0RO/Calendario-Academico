@@ -19,8 +19,11 @@
             </div>
 
             <div class="auth-buttons">
+                <button id="manageTeachersBtn" class="teacher-button hidden" onclick="openTeachersModal()">
+                    <span>+</span> Gestionar Profesores
+                </button>
 
-                <button id="toggleRoleBtn" class="teacher-button hidden" onclick="toggleDirectorMode()">
+                <button id="toggleRoleBtn" class="teacher-button secondary hidden" onclick="toggleDirectorMode()">
                     Cambiar a Modo Profesor
                 </button>
    
@@ -201,6 +204,146 @@
             </form>
         </div>
     </div>
+
+    <!-- MODAL PRINCIPAL: GESTIÓN DE PROFESORES -->
+    <div id="teachersModal" class="modal">
+        <div class="modal-content modal-wide">
+            <button class="close-modal" onclick="closeTeachersModal()">×</button>
+            <div class="teachers-modal-header">
+                <div>
+                    <span class="eyebrow">PANEL DE DIRECCIÓN</span>
+                    <h2>Gestión de Profesores</h2>
+                </div>
+                <button type="button" class="teacher-button" onclick="openCreateTeacherModal()">
+                    <span>+</span> Nuevo Profesor
+                </button>
+            </div>
+
+            <div class="teachers-table-wrapper">
+                <table class="teachers-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTableBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-light);">
+                                Cargando profesores...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL: CREAR / EDITAR PROFESOR -->
+    <div id="teacherFormModal" class="modal modal-nested">
+        <div class="modal-content" style="max-width: 440px;">
+            <button class="close-modal" onclick="closeTeacherFormModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">DOCENTES</span>
+                <h2 id="teacherFormTitle">Nuevo Profesor</h2>
+                <p id="teacherFormSubtitle">Completá los datos para registrar un docente.</p>
+            </div>
+            <form id="teacherForm" onsubmit="saveTeacher(event)">
+                <input type="hidden" id="teacherFormId">
+                <div class="form-group">
+                    <label for="teacherName">Nombre completo *</label>
+                    <input type="text" id="teacherName" required placeholder="Ej: Dra. Elena Gómez">
+                </div>
+                <div class="form-group">
+                    <label for="teacherEmail">Email *</label>
+                    <input type="email" id="teacherEmail" required placeholder="elena.gomez@utn.edu.ar">
+                </div>
+                <div class="form-group" id="teacherPasswordGroup">
+                    <label for="teacherPassword">Contraseña inicial *</label>
+                    <input type="password" id="teacherPassword" placeholder="Mínimo 6 caracteres">
+                </div>
+                <button type="submit" class="submit-button" id="teacherFormSubmitBtn">Guardar Profesor</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL: CAMBIAR CONTRASEÑA -->
+    <div id="teacherPasswordModal" class="modal modal-nested">
+        <div class="modal-content" style="max-width: 420px;">
+            <button class="close-modal" onclick="closePasswordModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">SEGURIDAD</span>
+                <h2>Cambiar Contraseña</h2>
+                <p id="passwordTeacherName">Docente seleccionado</p>
+            </div>
+            <form id="teacherPasswordForm" onsubmit="saveTeacherPassword(event)">
+                <input type="hidden" id="passwordTeacherId">
+                <div class="form-group">
+                    <label for="newTeacherPassword">Nueva contraseña *</label>
+                    <input type="password" id="newTeacherPassword" required minlength="4" placeholder="Ingresá la nueva contraseña">
+                </div>
+                <button type="submit" class="submit-button">Actualizar Contraseña</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL: ASIGNAR ROL -->
+    <div id="teacherRolesModal" class="modal modal-nested">
+        <div class="modal-content" style="max-width: 420px;">
+            <button class="close-modal" onclick="closeRolesModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">PERMISOS</span>
+                <h2>Asignar Rol</h2>
+                <p id="rolesTeacherName">Docente seleccionado</p>
+            </div>
+            <form id="teacherRolesForm" onsubmit="saveTeacherRoles(event)">
+                <input type="hidden" id="rolesTeacherId">
+                <div class="roles-checkbox-list">
+                    <label class="role-checkbox-item">
+                        <input type="checkbox" id="roleDirector" value="1">
+                        <div>
+                            <strong>Director</strong>
+                            <span>Acceso al panel de dirección y gestión de profesores</span>
+                        </div>
+                    </label>
+                    <label class="role-checkbox-item">
+                        <input type="checkbox" id="roleProfesor" value="2" checked disabled>
+                        <div>
+                            <strong>Profesor</strong>
+                            <span>Rol base docente para cargar exámenes en sus materias</span>
+                        </div>
+                    </label>
+                </div>
+                <button type="submit" class="submit-button">Guardar Roles</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL: ASIGNAR MATERIA -->
+    <div id="assignSubjectModal" class="modal modal-nested">
+        <div class="modal-content" style="max-width: 450px;">
+            <button class="close-modal" onclick="closeAssignSubjectModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">PLAN DE ESTUDIOS</span>
+                <h2>Asignar Materia</h2>
+                <p id="assignTeacherName">Docente seleccionado</p>
+            </div>
+            <form id="assignSubjectForm" onsubmit="saveAssignedSubject(event)">
+                <input type="hidden" id="assignTeacherId">
+                <div class="form-group">
+                    <label for="assignSubjectSelect">Seleccionar materia *</label>
+                    <select id="assignSubjectSelect" required></select>
+                </div>
+                <button type="submit" class="submit-button">Asignar Materia</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MENÚ DESPLEGABLE FLOTANTE DE ACCIONES -->
+    <div id="teacherActionsMenu" class="actions-dropdown hidden"></div>
 
     <script src="js/script.js"></script>
 
