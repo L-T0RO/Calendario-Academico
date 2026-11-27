@@ -35,7 +35,7 @@
                     <span>+</span> Agregar examen
                 </button>
 
-                <button id="logoutBtn" class="teacher-button logout hidden" onclick="logout()">
+                <button id="logoutBtn" class="teacher-button logout hidden" onclick="openLogoutModal()">
                     Salir
                 </button>
             </div>
@@ -290,7 +290,6 @@
         </div>
     </div>
 
-    <!-- SUB-MODAL: ASIGNAR ROL -->
     <div id="teacherRolesModal" class="modal modal-nested">
         <div class="modal-content" style="max-width: 420px;">
             <button class="close-modal" onclick="closeRolesModal()">×</button>
@@ -322,7 +321,6 @@
         </div>
     </div>
 
-    <!-- SUB-MODAL: ASIGNAR MATERIA -->
     <div id="assignSubjectModal" class="modal modal-nested">
         <div class="modal-content" style="max-width: 450px;">
             <button class="close-modal" onclick="closeAssignSubjectModal()">×</button>
@@ -342,8 +340,22 @@
         </div>
     </div>
 
-    <!-- MENÚ DESPLEGABLE FLOTANTE DE ACCIONES -->
     <div id="teacherActionsMenu" class="actions-dropdown hidden"></div>
+
+    <div id="logoutConfirmModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <button class="close-modal" onclick="closeLogoutModal()">×</button>
+            <div class="modal-header">
+                <span class="eyebrow">SESIÓN</span>
+                <h2>¿Estás seguro de que querés salir?</h2>
+                <p>Se cerrará tu sesión actual y volverás a la vista pública de estudiantes.</p>
+            </div>
+            <div class="confirm-actions">
+                <button type="button" class="teacher-button secondary" onclick="closeLogoutModal()">Cancelar</button>
+                <button type="button" class="teacher-button danger-solid" onclick="confirmLogout()">Sí, salir</button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/script.js"></script>
 

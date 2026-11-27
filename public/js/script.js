@@ -161,6 +161,27 @@ async function login(event) {
     }
 }
 
+function openLogoutModal() {
+    const modal = document.getElementById("logoutConfirmModal");
+    if (modal) {
+        modal.classList.add("show");
+        modal.style.display = "flex";
+    }
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById("logoutConfirmModal");
+    if (modal) {
+        modal.classList.remove("show");
+        modal.style.display = "none";
+    }
+}
+
+async function confirmLogout() {
+    closeLogoutModal();
+    await logout();
+}
+
 async function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('roles');
@@ -1101,6 +1122,50 @@ window.addEventListener("keydown", event => {
         } else {
             closeExamModal();
             closeLoginModal();
+            closeTeachersModal();
+        }
+    }
+});
+
+window.addEventListener("click", event => {
+    const menu = document.getElementById("teacherActionsMenu");
+    if (menu && !menu.contains(event.target) && !event.target.closest(".actions-btn")) {
+        closeAllActionMenus();
+    }
+
+    if (event.target === document.getElementById("examModal")) closeExamModal();
+    if (event.target === document.getElementById("loginModal")) closeLoginModal();
+    if (event.target === document.getElementById("logoutConfirmModal")) closeLogoutModal();
+    if (event.target === document.getElementById("teachersModal")) closeTeachersModal();
+    if (event.target === document.getElementById("teacherFormModal")) closeTeacherFormModal();
+    if (event.target === document.getElementById("teacherPasswordModal")) closePasswordModal();
+    if (event.target === document.getElementById("teacherRolesModal")) closeRolesModal();
+    if (event.target === document.getElementById("assignSubjectModal")) closeAssignSubjectModal();
+});
+
+window.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeAllActionMenus();
+        const nestedModals = [
+            "teacherFormModal",
+            "teacherPasswordModal",
+            "teacherRolesModal",
+            "assignSubjectModal"
+        ];
+        const anyNestedOpen = nestedModals.some(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains("show");
+        });
+
+        if (anyNestedOpen) {
+            closeTeacherFormModal();
+            closePasswordModal();
+            closeRolesModal();
+            closeAssignSubjectModal();
+        } else {
+            closeExamModal();
+            closeLoginModal();
+            closeLogoutModal();
             closeTeachersModal();
         }
     }

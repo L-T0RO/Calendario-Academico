@@ -922,3 +922,23 @@ textarea {
         align-items: stretch;
     }
 }
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.confirm-actions .teacher-button {
+    flex: 1;
+    text-align: center;
+}
+
+.teacher-button.danger-solid {
+    background: var(--danger);
+    color: white;
+}
+
+.teacher-button.danger-solid:hover {
+    background: #dc2626;
+}
